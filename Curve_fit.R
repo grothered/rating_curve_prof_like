@@ -6,6 +6,11 @@ measurements=read.delim(file='data_montalban.txt',header=F)
 # Optionally, we add names to the columns in measurements
 names(measurements) = c('Date', 'Site', 'Time', 'Stage', 'Distance', 'Duration', 'Speed', 'Mean Speed', 'Cross-sectional Area', 'Discharge')
 
+
+# NOTE: On July 23, 2004, there are 2 measurements -- one which an anomolously
+# high drouge time. We will have to drop this measurement.
+measurements = measurements[measurements$Duration<100,]
+
 # Plot measurements, with the date overlayed
 plot(measurements[,4], measurements[,8], xlab='Stage', ylab='Mean Speed', col='steelblue', pch=19)
 text(measurements[,4], measurements[,8], labels=measurements[,1], cex=0.6)
@@ -114,7 +119,7 @@ points(exp(drange), exp(log_prediction[,3]),t='l',col=2)
 #
 
 # NOTE: Measurements 1:3 on August 4, 2005 are inconsistent with the EFCOS water levels. So I will cut them out of this.
-include_pts=7:18
+include_pts=7:length(measurements[,1])
 
 # Select points with < 10% error in the area -- see below for justification
 # include_pts=which( abs(measurements[,9]/cs_area(measurements[,4]) -1.0) < 0.1)
@@ -245,7 +250,7 @@ pdf('Area_fitted_and_observed.pdf', width=5.4, height=5.4)
 plot(measurements[,9], cs_area(measurements[,4]),log='xy')
 points(1:500,1:500,t='l',col=2)
 text(measurements[,9], cs_area(measurements[,4]), measurements[,1], cex=0.6)
-points(measurements[,9], cs_area(measurements[,4]),col=2,pch=19)
+points(measurements[include_pts,9], cs_area(measurements[include_pts,4]),col=2,pch=19)
 dev.off()
 # So either 1) The data is very wrong, or 2) There have been changes in the cross-section. However, there do not seem to be many changes since 2006, in that part of the cross-section captured in the LiDAR. In either case, perhaps it is best to only fit our model to the data that agrees with the modern measurements? [NOTE: If the area estimates were wrong, but the velocity measurements were still correct, then it would be okay to use the old data. However, if the cross-section has just changed, then it would not be okay to use the old data. So the 'safe' thing is to just use the more recent data].
 
@@ -256,10 +261,34 @@ v_1=speed[keepers]
 v_2=measurements$Stage[keepers]
 mod2=nls(v_1~a*(v_2-bed)^0.67, start=list(a=1, bed=20))
 # This is a crap fit. Suggests that the roughness is really high at low Stages, which is plausible (vegetation etc in the river?). OR, that we have a looped rating curve, which is significantly unsteady. Check water slope / stage relation at this site.
+# NOTE: Analysis suggests that although the flow is significantly unsteady, the variation in sqrt(surface slope) (max-min)/min should be only around 20%. We expect the discharge to roughly scale with this. 
 
 # Alternative: Interpolation?
-vel_stage=aggregate(c(0, v_1), list(c(20.1, v_2)), mean)
-velfun=approxfun(vel_stage[,1], vel_stage[,2])
+#vel_stage=aggregate(c(0, v_1), list(c(20.1, v_2)), mean)
+#velfun=approxfun(vel_stage[,1], vel_stage[,2])
 # This is unlikely to be much good.
 
 # Based on analysis of the water levels at montalban and Nangka, we expect the water slope during a flood to varying around (5-7)/5000 or so, due to unsteadyness. This might change the discharge by 20%, assuming velocity and slope^0.5 are linearly related (which won't be true during unsteady flow!)
+
+
+# Try working directly with discharge (so assuming their xsectional area is correct)
+pdf('Rating_curve_performance.pdf', width=10,height=7)
+par(mfrow=c(2,1))
+par(mar=c(4,4,1,1))
+par(oma=c(0,0,3,0))
+# Plot of 'measured' with native cross-sectional area, and fitted using 2006 cross-sectional area
+Q_tmp = measurements[,8]*measurements[,9]
+plot(measurements[include_pts,4], Q_tmp[include_pts], xlab='Stage (m)', ylab='Discharge (m^3/s)', log='y', xlim=c(20,28), pch=19)
+points(seq(20.5,27,len=40), discharge_2006(seq(20.5,27,len=40)),t='l',col=2)
+text(measurements[include_pts,4], Q_tmp[include_pts],measurements[include_pts,1])
+legend('bottomright', c('Measured', 'Rating_curve'), pch=c(19,NA), lty=c(NA,1), col=c(1,2))
+
+# Relative error
+plot( measurements[include_pts,4], Q_tmp[include_pts]/discharge_2006(measurements[include_pts,4]), xlab='Stage (m)', ylab='(Measured Q)/(Rating_curve_Q)', log='y', xlim=c(20,28), pch=19)
+abline(h=1)
+text(measurements[include_pts,4], Q_tmp[include_pts]/discharge_2006(measurements[include_pts,4]), measurements[include_pts,1])
+abline(h=0.5,lty='dashed')
+abline(h=2,lty='dashed')
+
+title('Rating curve, measurements and errors @ Montalban', cex.main=2, outer=T)
+dev.off()
