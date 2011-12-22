@@ -252,7 +252,7 @@ points(1:500,1:500,t='l',col=2)
 text(measurements[,9], cs_area(measurements[,4]), measurements[,1], cex=0.6)
 points(measurements[include_pts,9], cs_area(measurements[include_pts,4]),col=2,pch=19)
 dev.off()
-# So either 1) The data is very wrong, or 2) There have been changes in the cross-section. However, there do not seem to be many changes since 2006, in that part of the cross-section captured in the LiDAR. In either case, perhaps it is best to only fit our model to the data that agrees with the modern measurements? [NOTE: If the area estimates were wrong, but the velocity measurements were still correct, then it would be okay to use the old data. However, if the cross-section has just changed, then it would not be okay to use the old data. So the 'safe' thing is to just use the more recent data].
+# So either 1) The data is very wrong, or 2) There have been changes in the cross-section. However, there do not seem to be many changes since 2006, in that part of the cross-section captured in the LiDAR. In either case, perhaps it is best to only fit our model to the data that agrees with the modern measurements? [NOTE: If the area estimates were wrong, but the velocity measurements were still correct, then it would be okay to use the old data. However, if the cross-section has just changed, then it would not be okay to use the old data. So the 'safe' thing is to just use the more recent data]. On the other hand, if the cross-section has changed, then the scatter / errors in the results give us an indication of what we should expect.
 
 # Select points with < 10% error in the area
 keepers=which(abs(measurements[,9]/cs_area(measurements[,4]) -1.0) < 0.1)
